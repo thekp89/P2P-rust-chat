@@ -1,0 +1,28 @@
+[package]
+name = "p2p-chat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libp2p = { version = "0.53", features = ["tcp", "noise", "yamux", "gossipsub", "mdns", "swarm", "identify"] }
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+crossterm = "0.27"
+ratatui = "0.24"
+chacha20poly1305 = "0.10"
+x25519-dalek = "2.0"
+rand = "0.8"
+futures = "0.3"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+clap = { version = "4.0", features = ["derive"] }
+
+[lib]
+name = "p2p_chat"
+path = "src/lib.rs"
+
+[[bin]]
+name = "chat"
+path = "src/main.rs"
