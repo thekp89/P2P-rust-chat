@@ -1,8 +1,12 @@
 use anyhow::Result;
 use clap::Parser;
 use p2p_chat::{ChatApp, Config};
+use p2p_chat::ui::{Menu, MenuItem, TerminalGuard, next_event};
 use tracing::{info, Level};
 use tracing_subscriber;
+use crossterm::event::{Event, KeyCode, EventStream};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::io;
 
 #[derive(Parser)]
 #[command(name = "p2p-chat")]
@@ -48,15 +52,45 @@ async fn main() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
-    info!("Starting P2P Chat...");
+    info!("Starting P2P Chat configuration...");
 
-    let config = Config {
-        port: args.port,
-        enable_mdns: args.mdns,
-        connect_to: args.connect,
-        username: args.username,
-    };
+    // Run Menu
+    let config = {
+        let _guard = TerminalGuard::new()?;
+        let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+        let mut menu = Menu::new(args.username.clone(), args.port, args.mdns, args.connect.clone());
+        let mut events = EventStream::new();
 
+        loop {
+            menu.draw(&mut terminal)?;
+
+            if let Some(Ok(Event::Key(key))) = next_event(&mut events).await {
+                match key.code {
+                    KeyCode::Up => menu.previous(),
+                    KeyCode::Down => menu.next(),
+                    KeyCode::Enter if matches!(menu.selected, MenuItem::Start) => break,
+                    _ => menu.handle_input(key.code),
+                }
+            }
+        }
+        
+        // Parse port, default to 0 if invalid
+        let port = menu.port.parse().unwrap_or(0);
+        let connect_to = if menu.connect_addr.trim().is_empty() {
+            None
+        } else {
+            Some(menu.connect_addr.trim().to_string())
+        };
+
+        Config {
+            port,
+            enable_mdns: menu.mdns,
+            connect_to,
+            username: menu.username,
+        }
+    }; // TerminalGuard drops here, restoring terminal
+
+    // Start Chat App
     let mut app = ChatApp::new(config).await?;
     app.run().await?;
 
