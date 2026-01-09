@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
 use p2p_chat::{ChatApp, Config};
-use std::path::PathBuf;
 use tracing::{info, Level};
 use tracing_subscriber;
 
